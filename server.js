@@ -13,6 +13,12 @@ app.get('/', (req, res) => {
 });
 
 // Проверка URL через Google Safe Browsing
+app.get('/check', (req, res) => {
+    res.json({
+        message: 'Use POST request with JSON body { url }'
+    });
+});
+
 app.post('/check', async (req, res) => {
     try {
         const { url } = req.body;
