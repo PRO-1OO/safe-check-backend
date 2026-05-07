@@ -9,7 +9,7 @@ const API_KEY = process.env.GOOGLE_API_KEY;
 
 // Главная страница
 app.get('/', (req, res) => {
-    res.send('Safe Check Backend is running');
+    res.send('Safe Check Backend is running 🚀');
 });
 
 // Проверка URL через Google Safe Browsing
