@@ -1,43 +1,70 @@
-const express = require("express");
-const fetch = require("node-fetch");
-const cors = require("cors");
+const express = require('express');
+const axios = require('axios');
 
 const app = express();
-app.use(cors());
+
 app.use(express.json());
 
-const API_KEY = process.env.API_KEY;
+const API_KEY = process.env.GOOGLE_API_KEY;
 
-app.post("/check", async (req, res) => {
-    const { url } = req.body;
+// Главная страница
+app.get('/', (req, res) => {
+    res.send('Safe Check Backend is running');
+});
 
+// Проверка URL через Google Safe Browsing
+app.post('/check', async (req, res) => {
     try {
-        const response = await fetch(
-             `https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${API_KEY}`,
+        const { url } = req.body;
+
+        if (!url) {
+            return res.status(400).json({
+                success: false,
+                message: 'URL is required'
+            });
+        }
+
+        const response = await axios.post(
+            `https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${API_KEY}`,
             {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({
-                    client: {
-                        clientId: "safe-check",
-                        clientVersion: "1.0"
-                    },
-                    threatInfo: {
-                        threatTypes: ["MALWARE","SOCIAL_ENGINEERING","UNWANTED_SOFTWARE"],
-                        platformTypes: ["ANY_PLATFORM"],
-                        threatEntryTypes: ["URL"],
-                        threatEntries: [{ url }]
-                    }
-                })
+                client: {
+                    clientId: 'safe-check',
+                    clientVersion: '1.0.0'
+                },
+                threatInfo: {
+                    threatTypes: [
+                        'MALWARE',
+                        'SOCIAL_ENGINEERING',
+                        'UNWANTED_SOFTWARE',
+                        'POTENTIALLY_HARMFUL_APPLICATION'
+                    ],
+                    platformTypes: ['ANY_PLATFORM'],
+                    threatEntryTypes: ['URL'],
+                    threatEntries: [{ url }]
+                }
             }
         );
 
-        const data = await response.json();
-        res.json({ safe: !data.matches });
+        const threats = response.data.matches || [];
 
-    } catch {
-        res.status(500).json({ error: "fail" });
+        res.json({
+            success: true,
+            safe: threats.length === 0,
+            threats
+        });
+
+    } catch (error) {
+        console.error(error.response?.data || error.message);
+
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
     }
 });
 
-app.listen(10000, () => console.log("Server running"));
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`Server started on port ${PORT}`);
+});
